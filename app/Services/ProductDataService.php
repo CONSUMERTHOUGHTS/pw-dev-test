@@ -38,37 +38,41 @@ class ProductDataService
     public function fetchAndStoreProductData(): void
     {
         try {
+            // Use config() to get the API URL
             $apiUrl = config('services.api.url') . '/product-data';
             echo "Fetching data from: " . $apiUrl . PHP_EOL;
-
+            
+            // Retry the API call 3 times with a 1-second delay between attempts
             $response = Http::retry(3, 1000)->get($apiUrl);
-
+    
+            // Log the raw response
             echo "API Response: " . $response->body() . PHP_EOL;
-
+    
             if ($response->failed()) {
-                $this->logAndReport('API Request Failed: ' . $response->status());
+                Sentry::captureMessage('API Request Failed: ' . $response->status());
                 return;
             }
-
-            $products = $response->json();
-
-            if (is_null($products) || !is_array($products)) {
-                $this->logAndReport('API returned null or invalid structure.');
-                return;
-            }
-
-            foreach ($products as $productData) {
-                if (!$this->validateProductData($productData)) {
-                    continue;
+    
+            if ($response->ok()) {
+                $products = $response->json();
+    
+                foreach ($products as $productData) {
+                    // Validate the product data
+                    if (!$this->validateProductData($productData)) {
+                        continue; // Skip this product if validation fails
+                    }
+    
+                    // Handle product creation or update
+                    $this->storeProductData($productData);
                 }
-
-                $this->storeProductData($productData);
             }
         } catch (\Throwable $e) {
-            $this->logAndReportException($e);
+            Sentry::captureException($e);
+            $this->errorHandlingService->report($e);
             throw $e;
-        }
+        } 
     }
+    
 
     /**
      * Validates product data before processing.

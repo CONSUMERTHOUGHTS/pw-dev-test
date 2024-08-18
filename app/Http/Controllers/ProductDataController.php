@@ -3,8 +3,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\Request;
+use App\Jobs\ProcessProductData;
 use App\Models\Sku;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 
 class ProductDataController extends Controller
@@ -16,7 +17,7 @@ class ProductDataController extends Controller
      */
     public function index(): array
     {
-        $data = file_get_contents(storage_path('app/public'). '/mock_data.json');
+        $data = file_get_contents(storage_path('app/public') . '/mock_data.json');
 
         return json_decode($data, true);
     }
@@ -24,9 +25,9 @@ class ProductDataController extends Controller
     /**
      * Display 20 SKUs including their variants.
      *
-     * @return JsonResponse
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function showSkus(): JsonResponse
+    public function showSkus(): \Illuminate\Http\JsonResponse
     {
         try {
             $skus = Sku::with('variants')
@@ -61,11 +62,24 @@ class ProductDataController extends Controller
 
             return response()->json($skus);
         } catch (\Exception $e) {
-            // Report the exception using a centralized error handling service
             Log::error('Failed to fetch SKUs: ' . $e->getMessage());
-
-            // Return a generic error message to the user
             return response()->json(['error' => 'Failed to fetch SKUs'], 500);
-        } 
+        }
+    }
+
+    /**
+     * Process product data and dispatch job.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function processProductData(Request $request)
+    {
+        $productData = $request->all();
+
+        // Dispatch the job
+        ProcessProductData::dispatch($productData);
+
+        return response()->json(['status' => 'Job dispatched']);
     }
 }

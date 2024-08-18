@@ -32,7 +32,7 @@ This is not an exhaustive list of requirements. This is your opportunity to code
 ## Installation
 * Clone the repo into your own account
 * Composer install 
-* Run `php artisan store:link` so that you have access to the storage folder.
+* Run `php artisan storage:link` so that you have access to the storage folder (note NOT store:link).
 * Perform the tasks as required.
 * Push the work to your github account
 * Provide a link to the repo to PW
@@ -47,15 +47,19 @@ Project Breakdown
 1.  **Table Structure:**
 
     -   Design the database schema for storing products, SKUs, and variants.
+
 2.  **Data Storage:**
 
     -   Create a command that fetches the product data from a dummy API and stores it in the database.
+
 3.  **Display Endpoint:**
 
     -   Implement an endpoint that returns SKUs with variants, filtered based on availability.
+
 4.  **Conditional Fields:**
 
     -   Ensure that only logged-in users can see specific fields (Box Quantity, Width, Height, Length).
+
 5.  **Security:**
 
     -   Implement XSS protection using middleware.
@@ -108,10 +112,14 @@ routes/
 
 tests/
 ├── Feature/
-│ ├── FetchProductDataCommandTest.php
-│ └── QueueTest.php
+│   ├── FetchProductDataCommandTest.php
+│   ├── QueueTest.php
+│   ├── ProcessProductDataRouteTest.php
+│   └── SmokeTest.php
 └── Unit/
-└── ProductDataServiceTest.php
+    ├── ProductDataServiceTest.php
+    └── ProcessProductDataTest.php
+
 
 database/
 ├── factories/
@@ -172,15 +180,16 @@ Running the Application
 
 2.  **Install Dependencies:** Run `composer install` to install all the necessary packages.
 
-3.  **Set Up Environment:** Copy `.env.example` to `.env` and configure your environment variables.
+3.  **Set Up Environment:** Copy `.env.example` to `.env` and `.env.testing`  and configure your environment variables.
 
 4.  **Configure the Database:** Update your `.env` file with database credentials.
 
-5.  **Run Migrations:** Execute the migrations to set up your database tables. ie `php artisan migrate`
+5.  **Run Migrations:** Execute the migrations to set up your database tables. ie `php artisan migrate` or for testing `php artisan migrate --env=testing`
+
 
 6.  **Seed the database if necessary:** You may need to seed the database with initial data.
 
-7.  **Run Fetch Command:** Use the command `php artisan fetch:product-data` to fetch product data from the API and store it in the database. Once completed, it will log a message indicating the data has been fetched and stored successfully.
+7.  **Run Fetch Command:** Use the command `php artisan fetch:product-data` or for testing `php artisan fetch:product-data --env=testing` to fetch product data from the API and store it in the database. Once completed, it will log a message indicating the data has been fetched and stored successfully.
 
 ### Viewing the Results
 
@@ -223,27 +232,35 @@ Make sure to run these queue tests regularly, especially when modifying code tha
 
 ### Test Coverage
 
--   **`FetchProductDataCommandTest.php`** (`tests/Feature/FetchProductDataCommandTest.php`):
-
+1.  **`FetchProductDataCommandTest.php`** (`tests/Feature/FetchProductDataCommandTest.php`):
     -   Tests the command responsible for fetching and storing product data from an external API.
--   **`QueueTest.php`** (`tests/Feature/QueueTest.php`):
-
+2.  **`QueueTest.php`** (`tests/Feature/QueueTest.php`):
     -   Ensures that the `ProcessProductData` job is correctly dispatched to the queue when triggered.
--   **`ProductDataServiceTest.php`** (`tests/Unit/ProductDataServiceTest.php`):
-
+3.  **`ProductDataServiceTest.php`** (`tests/Unit/ProductDataServiceTest.php`):
     -   Unit tests for the `ProductDataService`, focusing on its ability to fetch, validate, and store product data.
--   **`ProcessProductDataTest.php`** (`tests/Unit/ProcessProductDataTest.php`):
-
+4.  **`ProcessProductDataTest.php`** (`tests/Unit/ProcessProductDataTest.php`):
     -   Validates the functionality of the `ProcessProductData` job, ensuring it correctly processes and stores product data in the database.
--   **`ProcessProductDataRouteTest.php`** (`tests/Feature/ProcessProductDataRouteTest.php`):
-
+5.  **`ProcessProductDataRouteTest.php`** (`tests/Feature/ProcessProductDataRouteTest.php`):
     -   Tests the `/api/process-product-data` API endpoint, verifying that it correctly dispatches the `ProcessProductData` job.
+6.  **`PHPUnit Tests`**:
+    -   Includes unit and feature tests that cover various components of the application, ensuring that they work as expected in isolation and in combination.
+7.  **`SmokeTest.php`** (`tests/Feature/SmokeTest.php`):
+    -   Contains smoke tests that quickly verify the core functionalities of the appli
+    cation, including accessibility of the home page, product data endpoint, and SKU endpoint, as well as the `/api/process-product-data` route.
+8.  **`SecurityTest.php`** (`tests/Feature/SecurityTest.php`):
+    -   Ensures that user input is properly sanitized to prevent XSS attacks and verifies other security measures.
+
 
 ### Additional Tests
 
--   **Endpoint Tests**: You should also include tests for the `/product-data` and `/skus` endpoints:
+    -   **Endpoint Tests**: You should also include tests for the `/product-data` and `/skus` endpoints:
     -   **Authentication**: Ensure that tests cover authenticated vs. unauthenticated requests to `/skus`.
     -   **Data Integrity**: Verify that these endpoints return the correct data structure and content.
+    -   **Smoke Tests**: Perform basic smoke tests to verify the accessibility and functionality of key routes, such as the home page, `/product-data`, `/skus`, and `/api/process-product-data`.
+    -   **PHPUnit Tests**: Incorporate comprehensive unit and feature tests using PHPUnit to ensure all components work as expected in isolation and integration.
+    -   **Authorization**: Validate that only authorized users can access certain routes or perform specific actions.
+
+
 
 ### Continuous Integration
 
@@ -255,11 +272,20 @@ To maintain code quality, consider setting up Continuous Integration (CI) tools 
 
 A fallback route has been added to handle any undefined routes, returning a JSON response with a 404 error code.
 
+### **DB Indexing Addition**
+---------
+
+"To optimize performance, especially when searching using SKUs, indexing has been added to the relevant database columns. This improvement enhances the speed and efficiency of queries, which is particularly beneficial when dealing with large datasets."
+
 ### Future Enhancements
--------------------
+
+* * * * *
 
 -   **API Integration:** Implementing a fully functional API for data retrieval instead of relying on mock data.
 -   **Enhanced Security:** Additional security measures, such as more robust validation and input sanitation mechanisms.
 -   **Improved Performance:** Utilize caching strategies for frequent API requests and database queries.
 -   **User Roles and Permissions:** Implement role-based access control for more granular authorization.
 -   **Advanced Testing:** Increase test coverage, particularly for edge cases and failure scenarios.
+-   **User Authentication:** Integrating user authentication, such as with Laravel Sanctum, could add a robust layer of security, especially for API token management and user authentication.
+-   **Database Indexing:** The recently added database indexing sets the stage for implementing advanced search features, which could be developed to leverage these optimizations fully.
+-   **Additonal testing such as secrurity testing ie XSS, CSRF or Authorization Test
